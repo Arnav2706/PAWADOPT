@@ -8,7 +8,7 @@ An **admin dashboard** allows easy management of pets, users, orders, and adopti
 
 ## 🌐 Live Demo
 
-**Frontend:** [Vercel Deployment URL]()  
+**Frontend:** [Vercel Deployment URL](https://pawadoptlife.vercel.app)  
 **Backend:** [Render / Railway Deployment URL]()  
 
 ---
@@ -98,7 +98,7 @@ It provides a smooth and responsive user interface with powerful backend managem
 
 | Component | Platform | URL |
 |------------|-----------|-----|
-| Frontend | Vercel | [https://pawadopt.vercel.app](https://pawadopt.vercel.app) |
+| Frontend | Vercel | [https://pawadoptlife.vercel.app](https://pawadoptlife.vercel.app) |
 | Backend | Render / Railway | [https://pawadopt-backend.onrender.com](https://pawadopt-backend.onrender.com) |
 | Database | MySQL | Hosted locally or via Railway |
 
