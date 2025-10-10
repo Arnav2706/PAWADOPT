@@ -106,7 +106,7 @@ const ContactUs = () => {
                     </div>
                     <div>
                       <p className="font-semibold mb-1">Phone</p>
-                      <p className="text-muted-foreground">+1 (555) 123-4567</p>
+                      <p className="text-muted-foreground">+91 63893639927</p>
                       <p className="text-muted-foreground">Mon-Fri: 9AM - 6PM EST</p>
                     </div>
                   </div>
@@ -117,8 +117,8 @@ const ContactUs = () => {
                     </div>
                     <div>
                       <p className="font-semibold mb-1">Address</p>
-                      <p className="text-muted-foreground">123 Pet Street</p>
-                      <p className="text-muted-foreground">Animal City, AC 12345</p>
+                      <p className="text-muted-foreground">37,sarai vihar colony</p>
+                      <p className="text-muted-foreground">delhi india</p>
                     </div>
                   </div>
                 </div>
