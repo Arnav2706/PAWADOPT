@@ -49,7 +49,7 @@ const ProductCard = ({ id, name, price, image, category }: ProductCardProps) => 
           <p className="text-xs text-muted-foreground uppercase mb-1">{category}</p>
         )}
         <h3 className="font-semibold text-lg mb-1">{name}</h3>
-        <p className="text-secondary font-bold text-xl">${price.toFixed(2)}</p>
+        <p className="text-secondary font-bold text-xl">Rs {price.toFixed(2)}</p>
       </CardContent>
       <CardFooter className="p-4 pt-0 flex gap-2">
         <Button variant="secondary" className="flex-1" onClick={addToCart}>
