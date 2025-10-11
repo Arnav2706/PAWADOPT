@@ -44,6 +44,22 @@ export const apiCall = async (
 };
 
 // ============================
+// ============================
+// ORDERS API
+// ============================
+export const ordersAPI = {
+  create: async (orderData: any) => {
+    return apiCall('/api/orders', {
+      method: 'POST',
+      body: JSON.stringify(orderData),
+    });
+  },
+
+  getAll: async () => {
+    return apiCall('/api/orders', { method: 'GET' });
+  },
+};
+
 // AUTH API
 // ============================
 export const authAPI = {
