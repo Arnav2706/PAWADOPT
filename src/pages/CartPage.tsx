@@ -4,19 +4,92 @@ import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { useCart } from "@/hooks/useCart";
+import { paymentAPI, ordersAPI } from "@/lib/api";
+import { useState, useEffect } from "react";
 
 const CartPage = () => {
   const { cartItems, updateQuantity, removeItem, clearCart, totalPrice } = useCart();
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  useEffect(() => {
+    // Load Razorpay script
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    document.body.appendChild(script);
+    
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
   const handleRemoveItem = (id: string) => {
     removeItem(id);
     toast.success("Item removed from cart");
   };
 
-  const handleCheckout = () => {
-    // In real app, integrate Razorpay here
-    toast.success("Payment Successful! Order placed.");
-    clearCart();
+  const handleCheckout = async () => {
+    setIsProcessing(true);
+    try {
+      const totalAmount = totalPrice + 5; // Including shipping
+      
+      // Create order on backend
+      const orderResponse = await paymentAPI.createOrder({
+        amount: totalAmount
+      });
+
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        amount: orderResponse.amount,
+        currency: orderResponse.currency,
+        name: "PawMart",
+        description: "Purchase from PawMart",
+        order_id: orderResponse.id,
+        handler: async function (response: any) {
+          try {
+            // Verify payment on backend
+            await paymentAPI.verifyPayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+
+            // Create order in database
+            await ordersAPI.create({
+              items: cartItems,
+              total: totalAmount,
+              paymentId: response.razorpay_payment_id,
+            });
+
+            toast.success("Payment Successful! Order placed.");
+            clearCart();
+          } catch (error) {
+            toast.error("Payment verification failed!");
+            console.error(error);
+          }
+        },
+        prefill: {
+          name: "",
+          email: "",
+          contact: "",
+        },
+        theme: {
+          color: "#F97316",
+        },
+      };
+
+      const razorpay = new (window as any).Razorpay(options);
+      razorpay.on("payment.failed", function (response: any) {
+        toast.error("Payment failed! Please try again.");
+        console.error(response.error);
+      });
+      razorpay.open();
+    } catch (error) {
+      toast.error("Failed to initiate payment!");
+      console.error(error);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (cartItems.length === 0) {
@@ -121,8 +194,9 @@ const CartPage = () => {
                   size="lg"
                   className="w-full"
                   onClick={handleCheckout}
+                  disabled={isProcessing}
                 >
-                  Proceed to Payment
+                  {isProcessing ? "Processing..." : "Proceed to Payment"}
                 </Button>
               </CardContent>
             </Card>
