@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useCart } from "@/hooks/useCart";
 
 interface ProductCardProps {
   id: string;
@@ -14,14 +15,15 @@ interface ProductCardProps {
 
 const ProductCard = ({ id, name, price, image, category }: ProductCardProps) => {
   const [isFavorite, setIsFavorite] = useState(false);
-
+const { addToCart: addToCartContext } = useCart();
   const toggleFavorite = () => {
     setIsFavorite(!isFavorite);
     toast.success(isFavorite ? "Removed from wishlist" : "Added to wishlist");
   };
 
   const addToCart = () => {
-    // In a real app, this would add to cart state/context
+    // In a real app, this would add to cart state/contex
+    addToCartContext({ id, name, price, image, category });
     toast.success(`${name} added to cart!`);
   };
 

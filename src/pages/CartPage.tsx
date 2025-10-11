@@ -1,60 +1,22 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
-import { useState } from "react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
-
-interface CartItem {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-  image: string;
-}
+import { useCart } from "@/hooks/useCart";
 
 const CartPage = () => {
-  const [cartItems, setCartItems] = useState<CartItem[]>([
-    {
-      id: "1",
-      name: "Premium Dog Food",
-      price: 45.99,
-      quantity: 1,
-      image: "https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=200",
-    },
-    {
-      id: "2",
-      name: "Cat Scratching Post",
-      price: 29.99,
-      quantity: 2,
-      image: "https://images.unsplash.com/photo-1545249390-6bdfa286032f?w=200",
-    },
-  ]);
+  const { cartItems, updateQuantity, removeItem, clearCart, totalPrice } = useCart();
 
-  const updateQuantity = (id: string, change: number) => {
-    setCartItems((items) =>
-      items.map((item) =>
-        item.id === id
-          ? { ...item, quantity: Math.max(1, item.quantity + change) }
-          : item
-      )
-    );
-  };
-
-  const removeItem = (id: string) => {
-    setCartItems((items) => items.filter((item) => item.id !== id));
+  const handleRemoveItem = (id: string) => {
+    removeItem(id);
     toast.success("Item removed from cart");
   };
-
-  const totalPrice = cartItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
 
   const handleCheckout = () => {
     // In real app, integrate Razorpay here
     toast.success("Payment Successful! Order placed.");
-    setCartItems([]);
+    clearCart();
   };
 
   if (cartItems.length === 0) {
@@ -123,7 +85,7 @@ const CartPage = () => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => removeItem(item.id)}
+                      onClick={() => handleRemoveItem(item.id)}
                     >
                       <Trash2 className="h-5 w-5 text-destructive" />
                     </Button>
