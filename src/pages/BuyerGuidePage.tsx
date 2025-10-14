@@ -32,7 +32,7 @@ const BuyerGuidePage = () => {
     },
     {
       name: "Persian Cat",
-      image: "https://images.unsplash.com/photo-1573865526739-10c1d3a1e83e?w=600",
+      image: "https://unsplash.com/photos/short-haired-black-and-white-cat--vcg9-w_yMk",
       temperament: "Calm, Affectionate, Gentle",
       maintenance: "High - requires daily grooming and eye care",
       suitableFor: "Indoor living, calm households",

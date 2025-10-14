@@ -21,7 +21,7 @@ const PetDetailPage = () => {
     type: "Dog",
     gender: "Male",
     size: "Large",
-    location: "New York, NY",
+    location: "Mumbai, India",
     description:
       "Max is a friendly and energetic Golden Retriever who loves to play fetch and go on long walks. He's great with kids and other pets. Max is fully vaccinated and house-trained. He's looking for an active family who can give him plenty of exercise and love.",
     image: "https://images.unsplash.com/photo-1633722715463-d30f4f325e24?w=800",

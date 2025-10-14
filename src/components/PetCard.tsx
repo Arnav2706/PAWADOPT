@@ -20,7 +20,7 @@ const PetCard = ({ id, name, breed, age, image, type }: PetCardProps) => {
   const toggleFavorite = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsFavorite(!isFavorite);
-    // In a real app, this would call an API
+   
   };
 
   return (
