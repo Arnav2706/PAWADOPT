@@ -22,7 +22,7 @@ const HomePage = () => {
       breed: "Persian Cat",
       age: 1,
       type: "Cat",
-      image: "https://unsplash.com/photos/short-haired-black-and-white-cat--vcg9-w_yMkhttps://images.unsplash.com/photo-1573865526739-10c1d3a1e83e?w=500",
+      image: "https://images.unsplash.com/photo-1591429939960-b7d5add10b5c?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8cGVyc2lhbiUyMGNhdHxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&q=60&w=600",
     },
     {
       id: "3",

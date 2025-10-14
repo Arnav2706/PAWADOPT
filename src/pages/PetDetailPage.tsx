@@ -39,7 +39,7 @@ const PetDetailPage = () => {
       location: "Mumbai, India",
       description:
         "Luna is a beautiful Persian cat with a calm and affectionate personality. She loves to cuddle and enjoys quiet environments. Luna is perfect for apartment living and gets along well with gentle children. She's been spayed and is up to date on all vaccinations.",
-      image: "https://unsplash.com/photos/white-and-gray-long-fur-cat-AGehl6k8xVo",
+      image: "https://images.unsplash.com/photo-1591429939960-b7d5add10b5c?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8cGVyc2lhbiUyMGNhdHxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&q=60&w=600",
     },
     "3": {
       id: "3",
