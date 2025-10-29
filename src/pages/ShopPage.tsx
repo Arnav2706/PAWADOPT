@@ -1,62 +1,80 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import ProductCard from "@/components/ProductCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, ShoppingCart } from "lucide-react";
+import { productsAPI } from "@/lib/api";
+import { toast } from "sonner";
+
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  category?: string;
+  image: string;
+}
 
 const ShopPage = () => {
+  const [products, setProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock products data
-  const mockProducts = [
-    {
-      id: "1",
-      name: "Premium Dog Food",
-      price: 400,
-      category: "Food",
-      image: "https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=500",
-    },
-    {
-      id: "2",
-      name: "Cat Scratching Post",
-      price: 300,
-      category: "Toys",
-      image: "https://images.unsplash.com/photo-1545249390-6bdfa286032f?w=500",
-    },
-    {
-      id: "3",
-      name: "Pet Bed Cushion",
-      price: 270,
-      category: "Beds",
-      image: "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=500",
-    },
-    {
-      id: "4",
-      name: "Interactive Dog Toy",
-      price: 689,
-      category: "Toys",
-      image: "https://images.unsplash.com/photo-1591769225440-811ad7d6eab3?w=500",
-    },
-    {
-      id: "5",
-      name: "Cat Litter Box",
-      price: 279,
-      category: "Accessories",
-      image: "https://images.unsplash.com/photo-1591871937573-74dbba515c4c?w=500",
-    },
-    {
-      id: "6",
-      name: "Pet Grooming Kit",
-      price: 1899,
-      category: "Grooming",
-      image: "https://images.unsplash.com/photo-1560807707-8cc77767d783?w=500",
-    },
-  ];
+  // Fetch products from API on component mount
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        const data = await productsAPI.getAll();
+        setProducts(data || []);
+        setError(null);
+      } catch (err: any) {
+        console.error('Error fetching products:', err);
+        setError(err.message || 'Failed to load products');
+        toast.error('Failed to load products. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const filteredProducts = mockProducts.filter((product) =>
+    fetchProducts();
+  }, []);
+
+  const filteredProducts = products.filter((product) =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen py-12">
+        <div className="container mx-auto px-4">
+          <div className="text-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-secondary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading products...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen py-12">
+        <div className="container mx-auto px-4">
+          <div className="text-center py-20">
+            <p className="text-destructive mb-4">{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="text-secondary hover:underline"
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen py-12">
@@ -65,7 +83,7 @@ const ShopPage = () => {
           <div>
             <h1 className="text-4xl font-bold mb-4">Pet Supplies Shop</h1>
             <p className="text-muted-foreground text-lg">
-              Everything your pet needs, all in one place
+              Everything your pet needs, all in one place ({products.length} products)
             </p>
           </div>
           <Link to="/cart">
@@ -88,17 +106,19 @@ const ShopPage = () => {
         </div>
 
         {/* Products Grid */}
-        <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {filteredProducts.map((product) => (
-            <ProductCard key={product.id} {...product} />
-          ))}
-        </div>
-
-        {filteredProducts.length === 0 && (
+        {filteredProducts.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground text-lg">
-              No products found. Try a different search term.
+              {searchTerm 
+                ? "No products found. Try a different search term." 
+                : "No products available at the moment."}
             </p>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {filteredProducts.map((product) => (
+              <ProductCard key={product.id} {...product} />
+            ))}
           </div>
         )}
       </div>

@@ -4,7 +4,7 @@ import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { useCart } from "@/hooks/useCart";
-import { paymentAPI } from "@/lib/api";
+import { paymentAPI, ordersAPI } from "@/lib/api";
 import { useState, useEffect } from "react";
 
 const CartPage = () => {
@@ -39,18 +39,32 @@ const CartPage = () => {
       });
 
       const options = {
-        key: "rzp_test_RSDVXLmUTiClr1", // public key only
+        key: "rzp_test_RSDVXLmUTiClr1", // Your Razorpay public key
         amount: orderResponse.amount,
         currency: orderResponse.currency,
         name: "PawAdopt",
         description: "Cart Payment",
-        order_id: orderResponse.orderId, // from backend
-        handler: function (response: any) {
-          alert("Payment successful! Payment ID: " + response.razorpay_payment_id);
-          clearCart();
+        order_id: orderResponse.orderId,
+        handler: async function (response: any) {
+          try {
+            // Create order record in database
+            await ordersAPI.create({
+              items: cartItems,
+              totalAmount: totalAmount,
+              paymentId: response.razorpay_payment_id,
+              orderId: response.razorpay_order_id,
+              status: "Completed",
+            });
+
+            toast.success("Payment successful! Order placed.");
+            clearCart();
+          } catch (error) {
+            console.error('Error creating order:', error);
+            toast.error("Payment received but failed to create order record.");
+          }
         },
         prefill: {
-          name: "",
+          name: localStorage.getItem('userName') || "",
           email: "",
           contact: "",
         },
@@ -60,13 +74,15 @@ const CartPage = () => {
       };
 
       const rzp = new (window as any).Razorpay(options);
+      
       rzp.on("payment.failed", function (response: any) {
         toast.error("Payment failed! Please try again.");
         console.error(response.error);
       });
+      
       rzp.open();
-    } catch (error) {
-      toast.error("Failed to initiate payment!");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to initiate payment!");
       console.error(error);
     } finally {
       setIsProcessing(false);
@@ -113,8 +129,11 @@ const CartPage = () => {
                     />
                     <div className="flex-1">
                       <h3 className="font-semibold text-lg mb-1">{item.name}</h3>
+                      {item.category && (
+                        <p className="text-sm text-muted-foreground mb-1">{item.category}</p>
+                      )}
                       <p className="text-secondary font-bold">
-                        Rs{item.price.toFixed(2)}
+                        Rs {item.price.toFixed(2)}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -157,16 +176,16 @@ const CartPage = () => {
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Subtotal</span>
-                    <span className="font-semibold">Rs{totalPrice.toFixed(2)}</span>
+                    <span className="font-semibold">Rs {totalPrice.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Shipping</span>
-                    <span className="font-semibold">Rs5.00</span>
+                    <span className="font-semibold">Rs 5.00</span>
                   </div>
                   <div className="border-t pt-3 flex justify-between">
                     <span className="font-bold text-lg">Total</span>
                     <span className="font-bold text-lg text-secondary">
-                      Rs{(totalPrice + 5).toFixed(2)}
+                      Rs {(totalPrice + 5).toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -179,6 +198,9 @@ const CartPage = () => {
                 >
                   {isProcessing ? "Processing..." : "Proceed to Payment"}
                 </Button>
+                <p className="text-xs text-muted-foreground text-center mt-4">
+                  Secure payment powered by Razorpay
+                </p>
               </CardContent>
             </Card>
           </div>

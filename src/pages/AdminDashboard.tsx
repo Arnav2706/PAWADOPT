@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,62 +22,145 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { petsAPI, productsAPI, ordersAPI, adoptionAPI } from "@/lib/api";
+
+interface Pet {
+  id: string;
+  name: string;
+  breed: string;
+  age: number;
+  status?: string;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  stock?: number;
+}
+
+interface Order {
+  id: string;
+  customer?: string;
+  totalAmount: number;
+  status: string;
+}
+
+interface Adoption {
+  id: string;
+  petId: string;
+  petName?: string;
+  name: string;
+  contact: string;
+  reason: string;
+  status: string;
+}
 
 const AdminDashboard = () => {
+  const [pets, setPets] = useState<Pet[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [adoptions, setAdoptions] = useState<Adoption[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch all data on mount
+  useEffect(() => {
+    fetchAllData();
+  }, []);
+
+  const fetchAllData = async () => {
+    setLoading(true);
+    try {
+      const [petsData, productsData, ordersData, adoptionsData] = await Promise.all([
+        petsAPI.getAll().catch(() => []),
+        productsAPI.getAll().catch(() => []),
+        ordersAPI.getAll().catch(() => []),
+        adoptionAPI.getAll().catch(() => []),
+      ]);
+
+      setPets(petsData || []);
+      setProducts(productsData || []);
+      setOrders(ordersData || []);
+      setAdoptions(adoptionsData || []);
+    } catch (error) {
+      console.error('Error fetching admin data:', error);
+      toast.error('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeletePet = async (id: string) => {
+    try {
+      await petsAPI.delete(id);
+      setPets(pets.filter(p => p.id !== id));
+      toast.success("Pet deleted successfully");
+    } catch (error) {
+      toast.error("Failed to delete pet");
+    }
+  };
+
+  const handleDeleteProduct = async (id: string) => {
+    try {
+      await productsAPI.delete(id);
+      setProducts(products.filter(p => p.id !== id));
+      toast.success("Product deleted successfully");
+    } catch (error) {
+      toast.error("Failed to delete product");
+    }
+  };
+
+  const handleUpdateAdoptionStatus = async (id: string, status: 'Approved' | 'Rejected') => {
+    try {
+      await adoptionAPI.updateStatus(id, status);
+      setAdoptions(adoptions.map(a => 
+        a.id === id ? { ...a, status } : a
+      ));
+      toast.success(`Adoption request ${status.toLowerCase()}`);
+    } catch (error) {
+      toast.error("Failed to update adoption status");
+    }
+  };
+
   const stats = [
     {
       title: "Total Pets",
-      value: "24",
+      value: pets.length.toString(),
       icon: Dog,
-      change: "+3 this week",
+      change: `${pets.filter(p => p.status === 'Available').length} available`,
     },
     {
       title: "Products",
-      value: "156",
+      value: products.length.toString(),
       icon: ShoppingBag,
-      change: "+12 this month",
+      change: "Active listings",
     },
     {
       title: "Orders",
-      value: "89",
+      value: orders.length.toString(),
       icon: Package,
-      change: "23 pending",
+      change: `${orders.filter(o => o.status === 'Pending').length} pending`,
     },
     {
       title: "Adoption Requests",
-      value: "47",
+      value: adoptions.length.toString(),
       icon: Users,
-      change: "15 pending",
+      change: `${adoptions.filter(a => a.status === 'Pending').length} pending`,
     },
   ];
 
-  const mockPets = [
-    { id: "1", name: "Max", breed: "Golden Retriever", age: 2, status: "Available" },
-    { id: "2", name: "Luna", breed: "Persian Cat", age: 1, status: "Available" },
-    { id: "3", name: "Charlie", breed: "Labrador", age: 3, status: "Adopted" },
-  ];
-
-  const mockProducts = [
-    { id: "1", name: "Premium Dog Food", price: "$45.99", stock: 50 },
-    { id: "2", name: "Cat Scratching Post", price: "$29.99", stock: 30 },
-    { id: "3", name: "Pet Bed Cushion", price: "$39.99", stock: 25 },
-  ];
-
-  const mockOrders = [
-    { id: "ORD-001", customer: "John Doe", total: "$89.97", status: "Completed" },
-    { id: "ORD-002", customer: "Jane Smith", total: "$45.99", status: "Pending" },
-    { id: "ORD-003", customer: "Bob Johnson", total: "$129.98", status: "Shipped" },
-  ];
-
-  const mockAdoptions = [
-    { id: "1", petName: "Max", applicant: "Sarah Williams", status: "Pending" },
-    { id: "2", petName: "Luna", applicant: "Michael Brown", status: "Approved" },
-    { id: "3", petName: "Rocky", applicant: "Emma Davis", status: "Under Review" },
-  ];
-
-  const handleDelete = (type: string, id: string) => {
-    toast.success(`${type} deleted successfully`);
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-muted/30">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-secondary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading dashboard...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -141,34 +225,40 @@ const AdminDashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {mockPets.map((pet) => (
-                      <TableRow key={pet.id}>
-                        <TableCell className="font-medium">{pet.name}</TableCell>
-                        <TableCell>{pet.breed}</TableCell>
-                        <TableCell>{pet.age} years</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={pet.status === "Available" ? "default" : "secondary"}
-                          >
-                            {pet.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button variant="ghost" size="icon">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDelete("Pet", pet.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
+                    {pets.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-muted-foreground">
+                          No pets found
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : (
+                      pets.map((pet) => (
+                        <TableRow key={pet.id}>
+                          <TableCell className="font-medium">{pet.name}</TableCell>
+                          <TableCell>{pet.breed}</TableCell>
+                          <TableCell>{pet.age} years</TableCell>
+                          <TableCell>
+                            <Badge variant={pet.status === "Available" ? "default" : "secondary"}>
+                              {pet.status || "Available"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button variant="ghost" size="icon">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeletePet(pet.id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </TabsContent>
@@ -192,27 +282,35 @@ const AdminDashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {mockProducts.map((product) => (
-                      <TableRow key={product.id}>
-                        <TableCell className="font-medium">{product.name}</TableCell>
-                        <TableCell>{product.price}</TableCell>
-                        <TableCell>{product.stock} units</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button variant="ghost" size="icon">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDelete("Product", product.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
+                    {products.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center text-muted-foreground">
+                          No products found
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : (
+                      products.map((product) => (
+                        <TableRow key={product.id}>
+                          <TableCell className="font-medium">{product.name}</TableCell>
+                          <TableCell>Rs {product.price.toFixed(2)}</TableCell>
+                          <TableCell>{product.stock || 'N/A'}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button variant="ghost" size="icon">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteProduct(product.id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </TabsContent>
@@ -230,26 +328,34 @@ const AdminDashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {mockOrders.map((order) => (
-                      <TableRow key={order.id}>
-                        <TableCell className="font-medium">{order.id}</TableCell>
-                        <TableCell>{order.customer}</TableCell>
-                        <TableCell>{order.total}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              order.status === "Completed"
-                                ? "default"
-                                : order.status === "Pending"
-                                ? "secondary"
-                                : "outline"
-                            }
-                          >
-                            {order.status}
-                          </Badge>
+                    {orders.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center text-muted-foreground">
+                          No orders found
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : (
+                      orders.map((order) => (
+                        <TableRow key={order.id}>
+                          <TableCell className="font-medium">{order.id}</TableCell>
+                          <TableCell>{order.customer || 'N/A'}</TableCell>
+                          <TableCell>Rs {order.totalAmount?.toFixed(2) || '0.00'}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                order.status === "Completed"
+                                  ? "default"
+                                  : order.status === "Pending"
+                                  ? "secondary"
+                                  : "outline"
+                              }
+                            >
+                              {order.status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </TabsContent>
@@ -262,40 +368,62 @@ const AdminDashboard = () => {
                     <TableRow>
                       <TableHead>Pet Name</TableHead>
                       <TableHead>Applicant</TableHead>
+                      <TableHead>Contact</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {mockAdoptions.map((adoption) => (
-                      <TableRow key={adoption.id}>
-                        <TableCell className="font-medium">{adoption.petName}</TableCell>
-                        <TableCell>{adoption.applicant}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              adoption.status === "Approved"
-                                ? "default"
-                                : adoption.status === "Pending"
-                                ? "secondary"
-                                : "outline"
-                            }
-                          >
-                            {adoption.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button variant="secondary" size="sm">
-                              Approve
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              Reject
-                            </Button>
-                          </div>
+                    {adoptions.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-muted-foreground">
+                          No adoption requests found
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : (
+                      adoptions.map((adoption) => (
+                        <TableRow key={adoption.id}>
+                          <TableCell className="font-medium">
+                            {adoption.petName || `Pet #${adoption.petId}`}
+                          </TableCell>
+                          <TableCell>{adoption.name}</TableCell>
+                          <TableCell>{adoption.contact}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                adoption.status === "Approved"
+                                  ? "default"
+                                  : adoption.status === "Pending"
+                                  ? "secondary"
+                                  : "outline"
+                              }
+                            >
+                              {adoption.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {adoption.status === "Pending" && (
+                              <div className="flex gap-2">
+                                <Button 
+                                  variant="secondary" 
+                                  size="sm"
+                                  onClick={() => handleUpdateAdoptionStatus(adoption.id, "Approved")}
+                                >
+                                  Approve
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleUpdateAdoptionStatus(adoption.id, "Rejected")}
+                                >
+                                  Reject
+                                </Button>
+                              </div>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </TabsContent>

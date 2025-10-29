@@ -4,35 +4,39 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Heart, ShoppingBag, BookOpen, ArrowRight } from "lucide-react";
 import PetCard from "@/components/PetCard";
 import heroImage from "@/assets/hero-pets.jpg";
+import { useState, useEffect } from "react";
+import { petsAPI } from "@/lib/api";
+
+interface Pet {
+  id: string;
+  name: string;
+  breed: string;
+  age: number;
+  type: string;
+  image: string;
+}
 
 const HomePage = () => {
-  // Mock featured pets data
-  const featuredPets = [
-    {
-      id: "1",
-      name: "Max",
-      breed: "Golden Retriever",
-      age: 2,
-      type: "Dog",
-      image: "https://images.unsplash.com/photo-1633722715463-d30f4f325e24?w=500",
-    },
-    {
-      id: "2",
-      name: "Luna",
-      breed: "Persian Cat",
-      age: 1,
-      type: "Cat",
-      image: "https://images.unsplash.com/photo-1591429939960-b7d5add10b5c?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8cGVyc2lhbiUyMGNhdHxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&q=60&w=600",
-    },
-    {
-      id: "3",
-      name: "Charlie",
-      breed: "Labrador",
-      age: 3,
-      type: "Dog",
-      image: "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=500",
-    },
-  ];
+  const [featuredPets, setFeaturedPets] = useState<Pet[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch featured pets from API
+  useEffect(() => {
+    const fetchFeaturedPets = async () => {
+      try {
+        const data = await petsAPI.getAll();
+        // Take first 3 pets as featured
+        setFeaturedPets((data || []).slice(0, 3));
+      } catch (error) {
+        console.error('Error fetching featured pets:', error);
+        // Continue with empty array if fetch fails
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeaturedPets();
+  }, []);
 
   const breedInfo = [
     {
@@ -139,19 +143,35 @@ const HomePage = () => {
             Meet some of our adorable pets waiting for adoption
           </p>
         </div>
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          {featuredPets.map((pet) => (
-            <PetCard key={pet.id} {...pet} />
-          ))}
-        </div>
-        <div className="text-center">
-          <Link to="/adopt">
-            <Button variant="secondary" size="lg">
-              View All Pets
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-          </Link>
-        </div>
+        
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-secondary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading featured pets...</p>
+          </div>
+        ) : featuredPets.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground text-lg">
+              No featured pets available at the moment. Check back soon!
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="grid md:grid-cols-3 gap-6 mb-8">
+              {featuredPets.map((pet) => (
+                <PetCard key={pet.id} {...pet} />
+              ))}
+            </div>
+            <div className="text-center">
+              <Link to="/adopt">
+                <Button variant="secondary" size="lg">
+                  View All Pets
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
+            </div>
+          </>
+        )}
       </section>
 
       {/* Breed Guide Preview */}
