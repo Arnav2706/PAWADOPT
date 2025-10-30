@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -11,6 +15,24 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   LayoutDashboard,
   Dog,
@@ -29,13 +51,20 @@ interface Pet {
   name: string;
   breed: string;
   age: number;
+  type: string;
+  gender?: string;
+  description?: string;
+  imageUrl?: string;
+  adopted?: boolean;
   status?: string;
 }
 
 interface Product {
   id: string;
   name: string;
+  description?: string;
   price: number;
+  imageUrl?: string;
   stock?: number;
 }
 
@@ -62,8 +91,34 @@ const AdminDashboard = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [adoptions, setAdoptions] = useState<Adoption[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Modal states
+  const [isPetModalOpen, setIsPetModalOpen] = useState(false);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Delete confirmation states
+  const [deleteTarget, setDeleteTarget] = useState<{type: 'pet' | 'product', id: string, name: string} | null>(null);
+  
+  // Form states
+  const [petForm, setPetForm] = useState({
+    name: "",
+    type: "",
+    breed: "",
+    age: "",
+    gender: "",
+    description: "",
+    imageUrl: "",
+    adopted: false
+  });
+  
+  const [productForm, setProductForm] = useState({
+    name: "",
+    description: "",
+    price: "",
+    imageUrl: ""
+  });
 
-  // Fetch all data on mount
   useEffect(() => {
     fetchAllData();
   }, []);
@@ -90,23 +145,112 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleDeletePet = async (id: string) => {
+  // Pet form handlers
+  const handleAddPet = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
     try {
-      await petsAPI.delete(id);
-      setPets(pets.filter(p => p.id !== id));
-      toast.success("Pet deleted successfully");
-    } catch (error) {
-      toast.error("Failed to delete pet");
+      const petData = {
+        name: petForm.name,
+        type: petForm.type,
+        breed: petForm.breed,
+        age: parseInt(petForm.age),
+        gender: petForm.gender || undefined,
+        description: petForm.description || undefined,
+        imageUrl: petForm.imageUrl || undefined,
+        adopted: petForm.adopted
+      };
+      
+      await petsAPI.create(petData);
+      toast.success(`${petForm.name} added successfully!`);
+      
+      // Reset form and close modal
+      setPetForm({
+        name: "",
+        type: "",
+        breed: "",
+        age: "",
+        gender: "",
+        description: "",
+        imageUrl: "",
+        adopted: false
+      });
+      setIsPetModalOpen(false);
+      
+      // Refresh pets list
+      const updatedPets = await petsAPI.getAll();
+      setPets(updatedPets || []);
+    } catch (error: any) {
+      console.error('Error adding pet:', error);
+      toast.error(error.message || 'Failed to add pet');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleDeleteProduct = async (id: string) => {
+  // Product form handlers
+  const handleAddProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
     try {
-      await productsAPI.delete(id);
-      setProducts(products.filter(p => p.id !== id));
-      toast.success("Product deleted successfully");
+      const productData = {
+        name: productForm.name,
+        description: productForm.description || undefined,
+        price: parseFloat(productForm.price),
+        imageUrl: productForm.imageUrl || undefined
+      };
+      
+      await productsAPI.create(productData);
+      toast.success(`${productForm.name} added successfully!`);
+      
+      // Reset form and close modal
+      setProductForm({
+        name: "",
+        description: "",
+        price: "",
+        imageUrl: ""
+      });
+      setIsProductModalOpen(false);
+      
+      // Refresh products list
+      const updatedProducts = await productsAPI.getAll();
+      setProducts(updatedProducts || []);
+    } catch (error: any) {
+      console.error('Error adding product:', error);
+      toast.error(error.message || 'Failed to add product');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Delete handlers
+  const handleDeletePet = async () => {
+    if (!deleteTarget || deleteTarget.type !== 'pet') return;
+    
+    try {
+      await petsAPI.delete(deleteTarget.id);
+      setPets(pets.filter(p => p.id !== deleteTarget.id));
+      toast.success(`${deleteTarget.name} deleted successfully`);
+    } catch (error) {
+      toast.error("Failed to delete pet");
+    } finally {
+      setDeleteTarget(null);
+    }
+  };
+
+  const handleDeleteProduct = async () => {
+    if (!deleteTarget || deleteTarget.type !== 'product') return;
+    
+    try {
+      await productsAPI.delete(deleteTarget.id);
+      setProducts(products.filter(p => p.id !== deleteTarget.id));
+      toast.success(`${deleteTarget.name} deleted successfully`);
     } catch (error) {
       toast.error("Failed to delete product");
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -127,7 +271,7 @@ const AdminDashboard = () => {
       title: "Total Pets",
       value: pets.length.toString(),
       icon: Dog,
-      change: `${pets.filter(p => p.status === 'Available').length} available`,
+      change: `${pets.filter(p => !p.adopted).length} available`,
     },
     {
       title: "Products",
@@ -209,11 +353,142 @@ const AdminDashboard = () => {
               <TabsContent value="pets">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold">Manage Pets</h3>
-                  <Button variant="secondary">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Pet
-                  </Button>
+                  
+                  <Dialog open={isPetModalOpen} onOpenChange={setIsPetModalOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="secondary">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add New Pet
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>Add New Pet</DialogTitle>
+                        <DialogDescription>
+                          Fill in the details to add a new pet to the adoption list
+                        </DialogDescription>
+                      </DialogHeader>
+                      
+                      <div className="space-y-4 py-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="pet-name">Name *</Label>
+                            <Input
+                              id="pet-name"
+                              value={petForm.name}
+                              onChange={(e) => setPetForm({...petForm, name: e.target.value})}
+                              placeholder="e.g., Max"
+                              required
+                              disabled={isSubmitting}
+                            />
+                          </div>
+                          
+                          <div>
+                            <Label htmlFor="pet-type">Type *</Label>
+                            <Input
+                              id="pet-type"
+                              value={petForm.type}
+                              onChange={(e) => setPetForm({...petForm, type: e.target.value})}
+                              placeholder="e.g., Dog, Cat"
+                              required
+                              disabled={isSubmitting}
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="pet-breed">Breed *</Label>
+                            <Input
+                              id="pet-breed"
+                              value={petForm.breed}
+                              onChange={(e) => setPetForm({...petForm, breed: e.target.value})}
+                              placeholder="e.g., Golden Retriever"
+                              required
+                              disabled={isSubmitting}
+                            />
+                          </div>
+                          
+                          <div>
+                            <Label htmlFor="pet-age">Age (years) *</Label>
+                            <Input
+                              id="pet-age"
+                              type="number"
+                              value={petForm.age}
+                              onChange={(e) => setPetForm({...petForm, age: e.target.value})}
+                              placeholder="e.g., 2"
+                              required
+                              disabled={isSubmitting}
+                            />
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="pet-gender">Gender</Label>
+                          <Input
+                            id="pet-gender"
+                            value={petForm.gender}
+                            onChange={(e) => setPetForm({...petForm, gender: e.target.value})}
+                            placeholder="e.g., Male, Female"
+                            disabled={isSubmitting}
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="pet-description">Description</Label>
+                          <Textarea
+                            id="pet-description"
+                            value={petForm.description}
+                            onChange={(e) => setPetForm({...petForm, description: e.target.value})}
+                            placeholder="Tell us about this pet..."
+                            rows={3}
+                            disabled={isSubmitting}
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="pet-image">Image URL</Label>
+                          <Input
+                            id="pet-image"
+                            type="url"
+                            value={petForm.imageUrl}
+                            onChange={(e) => setPetForm({...petForm, imageUrl: e.target.value})}
+                            placeholder="https://example.com/image.jpg"
+                            disabled={isSubmitting}
+                          />
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="pet-adopted"
+                            checked={petForm.adopted}
+                            onCheckedChange={(checked) => 
+                              setPetForm({...petForm, adopted: checked as boolean})
+                            }
+                            disabled={isSubmitting}
+                          />
+                          <Label htmlFor="pet-adopted" className="cursor-pointer">
+                            Mark as adopted
+                          </Label>
+                        </div>
+                        
+                        <div className="flex justify-end gap-3 pt-4">
+                          <Button
+                            variant="outline"
+                            onClick={() => setIsPetModalOpen(false)}
+                            disabled={isSubmitting}
+                          >
+                            Cancel
+                          </Button>
+                          <Button variant="secondary" onClick={handleAddPet} disabled={isSubmitting}>
+                            {isSubmitting ? "Adding..." : "Add Pet"}
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
+                
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -228,7 +503,7 @@ const AdminDashboard = () => {
                     {pets.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={5} className="text-center text-muted-foreground">
-                          No pets found
+                          No pets found. Add your first pet!
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -238,19 +513,20 @@ const AdminDashboard = () => {
                           <TableCell>{pet.breed}</TableCell>
                           <TableCell>{pet.age} years</TableCell>
                           <TableCell>
-                            <Badge variant={pet.status === "Available" ? "default" : "secondary"}>
-                              {pet.status || "Available"}
+                            <Badge variant={pet.adopted ? "outline" : "default"}>
+                              {pet.adopted ? "Adopted" : "Available"}
                             </Badge>
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-2">
-                              <Button variant="ghost" size="icon">
+                              <Button variant="ghost" size="icon" title="Edit">
                                 <Edit className="h-4 w-4" />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => handleDeletePet(pet.id)}
+                                onClick={() => setDeleteTarget({type: 'pet', id: pet.id, name: pet.name})}
+                                title="Delete"
                               >
                                 <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
@@ -267,11 +543,90 @@ const AdminDashboard = () => {
               <TabsContent value="products">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold">Manage Products</h3>
-                  <Button variant="secondary">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Product
-                  </Button>
+                  
+                  <Dialog open={isProductModalOpen} onOpenChange={setIsProductModalOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="secondary">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add New Product
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>Add New Product</DialogTitle>
+                        <DialogDescription>
+                          Fill in the details to add a new product to the shop
+                        </DialogDescription>
+                      </DialogHeader>
+                      
+                      <div className="space-y-4 py-4">
+                        <div>
+                          <Label htmlFor="product-name">Product Name *</Label>
+                          <Input
+                            id="product-name"
+                            value={productForm.name}
+                            onChange={(e) => setProductForm({...productForm, name: e.target.value})}
+                            placeholder="e.g., Premium Dog Food"
+                            required
+                            disabled={isSubmitting}
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="product-description">Description</Label>
+                          <Textarea
+                            id="product-description"
+                            value={productForm.description}
+                            onChange={(e) => setProductForm({...productForm, description: e.target.value})}
+                            placeholder="Describe the product..."
+                            rows={3}
+                            disabled={isSubmitting}
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="product-price">Price (Rs) *</Label>
+                          <Input
+                            id="product-price"
+                            type="number"
+                            step="0.01"
+                            value={productForm.price}
+                            onChange={(e) => setProductForm({...productForm, price: e.target.value})}
+                            placeholder="e.g., 45.99"
+                            required
+                            disabled={isSubmitting}
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="product-image">Image URL</Label>
+                          <Input
+                            id="product-image"
+                            type="url"
+                            value={productForm.imageUrl}
+                            onChange={(e) => setProductForm({...productForm, imageUrl: e.target.value})}
+                            placeholder="https://example.com/product.jpg"
+                            disabled={isSubmitting}
+                          />
+                        </div>
+                        
+                        <div className="flex justify-end gap-3 pt-4">
+                          <Button
+                            variant="outline"
+                            onClick={() => setIsProductModalOpen(false)}
+                            disabled={isSubmitting}
+                          >
+                            Cancel
+                          </Button>
+                          <Button variant="secondary" onClick={handleAddProduct} disabled={isSubmitting}>
+                            {isSubmitting ? "Adding..." : "Add Product"}
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
+                
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -285,7 +640,7 @@ const AdminDashboard = () => {
                     {products.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={4} className="text-center text-muted-foreground">
-                          No products found
+                          No products found. Add your first product!
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -296,13 +651,14 @@ const AdminDashboard = () => {
                           <TableCell>{product.stock || 'N/A'}</TableCell>
                           <TableCell>
                             <div className="flex gap-2">
-                              <Button variant="ghost" size="icon">
+                              <Button variant="ghost" size="icon" title="Edit">
                                 <Edit className="h-4 w-4" />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => handleDeleteProduct(product.id)}
+                                onClick={() => setDeleteTarget({type: 'product', id: product.id, name: product.name})}
+                                title="Delete"
                               >
                                 <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
@@ -431,6 +787,27 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
       </div>
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete <strong>{deleteTarget?.name}</strong>. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={deleteTarget?.type === 'pet' ? handleDeletePet : handleDeleteProduct}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
