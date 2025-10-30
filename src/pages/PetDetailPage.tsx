@@ -19,7 +19,8 @@ interface Pet {
   size?: string;
   location?: string;
   description?: string;
-  image: string;
+  image?: string;
+  imageUrl?: string;
 }
 
 const PetDetailPage = () => {
@@ -34,18 +35,43 @@ const PetDetailPage = () => {
     reason: "" 
   });
 
+  // Placeholder image for pets without images
+  const PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1450778869180-41d0601e046e?w=500';
+
   // Fetch pet details from API
   useEffect(() => {
     const fetchPet = async () => {
-      if (!id) return;
+      if (!id) {
+        toast.error('No pet ID provided');
+        setLoading(false);
+        return;
+      }
       
       try {
         setLoading(true);
+        console.log('Fetching pet with ID:', id);
         const data = await petsAPI.getById(id);
-        setPet(data);
+        console.log('Pet data received:', data);
+        
+        if (!data) {
+          toast.error('Pet not found');
+          setLoading(false);
+          return;
+        }
+        
+        // Normalize the image field (handle both 'image' and 'imageUrl')
+        const normalizedPet = {
+          ...data,
+          image: data.image || data.imageUrl || PLACEHOLDER_IMAGE
+        };
+        
+        setPet(normalizedPet);
       } catch (error: any) {
         console.error('Error fetching pet:', error);
-        toast.error('Failed to load pet details');
+        const errorMessage = error.message || 'Failed to load pet details';
+        toast.error(errorMessage);
+        
+        // Don't set pet to null on error - let the component show error state
       } finally {
         setLoading(false);
       }
@@ -57,7 +83,10 @@ const PetDetailPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!pet) return;
+    if (!pet) {
+      toast.error('Pet information not available');
+      return;
+    }
 
     try {
       setSubmitting(true);
@@ -124,9 +153,13 @@ const PetDetailPage = () => {
           <div>
             <div className="relative rounded-2xl overflow-hidden mb-6 animate-fade-in">
               <img
-                src={pet.image}
+                src={pet.image || PLACEHOLDER_IMAGE}
                 alt={pet.name}
                 className="w-full h-[500px] object-cover"
+                onError={(e) => {
+                  // Fallback to placeholder if image fails to load
+                  (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE;
+                }}
               />
               <Button
                 variant="secondary"

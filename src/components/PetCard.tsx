@@ -10,26 +10,34 @@ interface PetCardProps {
   name: string;
   breed: string;
   age: number;
-  image: string;
+  image?: string;
+  imageUrl?: string;
   type: string;
 }
 
-const PetCard = ({ id, name, breed, age, image, type }: PetCardProps) => {
+const PetCard = ({ id, name, breed, age, image, imageUrl, type }: PetCardProps) => {
   const [isFavorite, setIsFavorite] = useState(false);
+  const PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1450778869180-41d0601e046e?w=500';
+  
+  // Use image or imageUrl, fallback to placeholder
+  const petImage = image || imageUrl || PLACEHOLDER_IMAGE;
 
   const toggleFavorite = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsFavorite(!isFavorite);
-   
   };
 
   return (
     <Card className="group overflow-hidden transition-all hover:shadow-hover animate-fade-in">
       <div className="relative overflow-hidden aspect-square">
         <img
-          src={image}
+          src={petImage}
           alt={name}
           className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-300"
+          onError={(e) => {
+            // Fallback to placeholder if image fails to load
+            (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE;
+          }}
         />
         <button
           onClick={toggleFavorite}

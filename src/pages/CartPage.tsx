@@ -32,11 +32,15 @@ const CartPage = () => {
     setIsProcessing(true);
     try {
       const totalAmount = totalPrice + 5; // Including shipping
+      
+      console.log('Creating payment order with amount:', totalAmount);
 
       // Create Razorpay order via backend
       const orderResponse = await paymentAPI.createOrder({
         amount: totalAmount
       });
+
+      console.log('Payment order created:', orderResponse);
 
       const options = {
         key: "rzp_test_RSDVXLmUTiClr1", // Your Razorpay public key
@@ -47,20 +51,41 @@ const CartPage = () => {
         order_id: orderResponse.orderId,
         handler: async function (response: any) {
           try {
-            // Create order record in database
-            await ordersAPI.create({
-              items: cartItems,
+            console.log('Payment successful, creating order record:', response);
+            
+            // Prepare order data with all required fields
+            const orderData = {
+              items: cartItems.map(item => ({
+                productId: item.id,
+                name: item.name,
+                price: item.price,
+                quantity: item.quantity,
+                image: item.image
+              })),
               totalAmount: totalAmount,
               paymentId: response.razorpay_payment_id,
               orderId: response.razorpay_order_id,
+              signature: response.razorpay_signature,
               status: "Completed",
-            });
+              userId: localStorage.getItem('userId') || undefined,
+              customer: localStorage.getItem('userName') || 'Guest'
+            };
+
+            console.log('Submitting order data:', orderData);
+            
+            // Create order record in database
+            const createdOrder = await ordersAPI.create(orderData);
+            
+            console.log('Order created successfully:', createdOrder);
 
             toast.success("Payment successful! Order placed.");
             clearCart();
-          } catch (error) {
+            
+            // Optional: Navigate to success page or show order details
+            // navigate('/orders');
+          } catch (error: any) {
             console.error('Error creating order:', error);
-            toast.error("Payment received but failed to create order record.");
+            toast.error(error.message || "Payment received but failed to create order record.");
           }
         },
         prefill: {
@@ -71,21 +96,26 @@ const CartPage = () => {
         theme: {
           color: "#F97316",
         },
+        modal: {
+          ondismiss: function() {
+            setIsProcessing(false);
+          }
+        }
       };
 
       const rzp = new (window as any).Razorpay(options);
       
       rzp.on("payment.failed", function (response: any) {
+        setIsProcessing(false);
         toast.error("Payment failed! Please try again.");
-        console.error(response.error);
+        console.error('Payment failed:', response.error);
       });
       
       rzp.open();
     } catch (error: any) {
-      toast.error(error.message || "Failed to initiate payment!");
-      console.error(error);
-    } finally {
       setIsProcessing(false);
+      toast.error(error.message || "Failed to initiate payment!");
+      console.error('Checkout error:', error);
     }
   };
 

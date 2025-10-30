@@ -10,7 +10,8 @@ interface Pet {
   breed: string;
   age: number;
   type: string;
-  image: string;
+  image?: string;
+  imageUrl?: string;
 }
 
 const PetListPage = () => {
@@ -26,8 +27,16 @@ const PetListPage = () => {
       try {
         setLoading(true);
         const data = await petsAPI.getAll();
-        setPets(data || []);
-        setFilteredPets(data || []);
+        console.log('Pets fetched:', data);
+        
+        // Normalize image field for all pets
+        const normalizedPets = (data || []).map(pet => ({
+          ...pet,
+          image: pet.image || pet.imageUrl || 'https://images.unsplash.com/photo-1450778869180-41d0601e046e?w=500'
+        }));
+        
+        setPets(normalizedPets);
+        setFilteredPets(normalizedPets);
         setError(null);
       } catch (err: any) {
         console.error('Error fetching pets:', err);
