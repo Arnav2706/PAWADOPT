@@ -2,44 +2,15 @@ import { Heart } from "lucide-react";
 import PetCard from "@/components/PetCard";
 import ProductCard from "@/components/ProductCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useFavorites } from "@/hooks/useCart";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 const FavoritesPage = () => {
-  // Mock favorites data
-  const favoritePets = [
-    {
-      id: "1",
-      name: "Max",
-      breed: "Golden Retriever",
-      age: 2,
-      type: "Dog",
-      image: "https://images.unsplash.com/photo-1633722715463-d30f4f325e24?w=500",
-    },
-    {
-      id: "2",
-      name: "Luna",
-      breed: "Persian Cat",
-      age: 1,
-      type: "Cat",
-      image: "https://images.unsplash.com/photo-1573865526739-10c1d3a1e83e?w=500",
-    },
-  ];
-
-  const favoriteProducts = [
-    {
-      id: "1",
-      name: "Premium Dog Food",
-      price: 45.99,
-      category: "Food",
-      image: "https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=500",
-    },
-    {
-      id: "3",
-      name: "Pet Bed Cushion",
-      price: 39.99,
-      category: "Beds",
-      image: "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=500",
-    },
-  ];
+  const { getFavoritePets, getFavoriteProducts } = useFavorites();
+  
+  const favoritePets = getFavoritePets();
+  const favoriteProducts = getFavoriteProducts();
 
   return (
     <div className="min-h-screen py-12">
@@ -50,17 +21,17 @@ const FavoritesPage = () => {
             <h1 className="text-4xl font-bold">My Favorites</h1>
           </div>
           <p className="text-muted-foreground text-lg">
-            Your saved pets and products
+            Your saved pets and products ({favoritePets.length + favoriteProducts.length} total)
           </p>
         </div>
 
         <Tabs defaultValue="pets" className="w-full">
           <TabsList className="mb-8">
             <TabsTrigger value="pets" className="text-lg px-8">
-              Favorite Pets
+              Favorite Pets ({favoritePets.length})
             </TabsTrigger>
             <TabsTrigger value="products" className="text-lg px-8">
-              Favorite Products
+              Favorite Products ({favoriteProducts.length})
             </TabsTrigger>
           </TabsList>
 
@@ -68,15 +39,26 @@ const FavoritesPage = () => {
             {favoritePets.length > 0 ? (
               <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {favoritePets.map((pet) => (
-                  <PetCard key={pet.id} {...pet} />
+                  <PetCard
+                    key={pet.id}
+                    id={pet.id}
+                    name={pet.name}
+                    breed={pet.breed || 'Unknown'}
+                    age={pet.age || 0}
+                    type={pet.type}
+                    image={pet.image}
+                  />
                 ))}
               </div>
             ) : (
               <div className="text-center py-20">
                 <Heart className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground text-lg">
+                <p className="text-muted-foreground text-lg mb-4">
                   No favorite pets yet. Start adding some!
                 </p>
+                <Link to="/adopt">
+                  <Button variant="secondary">Browse Pets</Button>
+                </Link>
               </div>
             )}
           </TabsContent>
@@ -85,15 +67,25 @@ const FavoritesPage = () => {
             {favoriteProducts.length > 0 ? (
               <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {favoriteProducts.map((product) => (
-                  <ProductCard key={product.id} {...product} />
+                  <ProductCard
+                    key={product.id}
+                    id={product.id}
+                    name={product.name}
+                    price={product.price || 0}
+                    image={product.image}
+                    category={product.category}
+                  />
                 ))}
               </div>
             ) : (
               <div className="text-center py-20">
                 <Heart className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground text-lg">
+                <p className="text-muted-foreground text-lg mb-4">
                   No favorite products yet. Start adding some!
                 </p>
+                <Link to="/shop">
+                  <Button variant="secondary">Browse Products</Button>
+                </Link>
               </div>
             )}
           </TabsContent>

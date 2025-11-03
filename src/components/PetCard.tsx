@@ -3,7 +3,8 @@ import { Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
+import { useFavorites } from "@/hooks/useCart";
+import { toast } from "sonner";
 
 interface PetCardProps {
   id: string;
@@ -16,15 +17,31 @@ interface PetCardProps {
 }
 
 const PetCard = ({ id, name, breed, age, image, imageUrl, type }: PetCardProps) => {
-  const [isFavorite, setIsFavorite] = useState(false);
+  const { isFavorite, addToFavorites, removeFromFavorites } = useFavorites();
   const PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1450778869180-41d0601e046e?w=500';
   
   // Use image or imageUrl, fallback to placeholder
   const petImage = image || imageUrl || PLACEHOLDER_IMAGE;
+  const isCurrentlyFavorite = isFavorite(id);
 
   const toggleFavorite = (e: React.MouseEvent) => {
     e.preventDefault();
-    setIsFavorite(!isFavorite);
+    
+    if (isCurrentlyFavorite) {
+      removeFromFavorites(id);
+      toast.success(`${name} removed from favorites`);
+    } else {
+      addToFavorites({
+        id,
+        name,
+        breed,
+        age,
+        type,
+        image: petImage,
+        itemType: 'pet'
+      });
+      toast.success(`${name} added to favorites`);
+    }
   };
 
   return (
@@ -45,7 +62,7 @@ const PetCard = ({ id, name, breed, age, image, imageUrl, type }: PetCardProps) 
         >
           <Heart
             className={`h-5 w-5 ${
-              isFavorite ? "fill-secondary text-secondary" : "text-muted-foreground"
+              isCurrentlyFavorite ? "fill-secondary text-secondary" : "text-muted-foreground"
             }`}
           />
         </button>
