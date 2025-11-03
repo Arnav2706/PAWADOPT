@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +44,7 @@ import {
   Plus,
   Edit,
   Trash2,
+  ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 import { petsAPI, productsAPI, ordersAPI, adoptionAPI } from "@/lib/api";
@@ -86,6 +89,8 @@ interface Adoption {
 }
 
 const AdminDashboard = () => {
+  const { isAuthenticated, isAdmin, isLoading } = useAuth();
+  const navigate = useNavigate();
   const [pets, setPets] = useState<Pet[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -119,9 +124,28 @@ const AdminDashboard = () => {
     imageUrl: ""
   });
 
+  // Check authentication and admin status
   useEffect(() => {
-    fetchAllData();
-  }, []);
+    if (!isLoading) {
+      if (!isAuthenticated) {
+        toast.error("Please login to access the admin dashboard");
+        navigate('/');
+        return;
+      }
+      
+      if (!isAdmin) {
+        toast.error("Access denied. Admin privileges required.");
+        navigate('/');
+        return;
+      }
+    }
+  }, [isAuthenticated, isAdmin, isLoading, navigate]);
+
+  useEffect(() => {
+    if (isAuthenticated && isAdmin) {
+      fetchAllData();
+    }
+  }, [isAuthenticated, isAdmin]);
 
   const fetchAllData = async () => {
     setLoading(true);
@@ -165,7 +189,6 @@ const AdminDashboard = () => {
       await petsAPI.create(petData);
       toast.success(`${petForm.name} added successfully!`);
       
-      // Reset form and close modal
       setPetForm({
         name: "",
         type: "",
@@ -178,7 +201,6 @@ const AdminDashboard = () => {
       });
       setIsPetModalOpen(false);
       
-      // Refresh pets list
       const updatedPets = await petsAPI.getAll();
       setPets(updatedPets || []);
     } catch (error: any) {
@@ -205,7 +227,6 @@ const AdminDashboard = () => {
       await productsAPI.create(productData);
       toast.success(`${productForm.name} added successfully!`);
       
-      // Reset form and close modal
       setProductForm({
         name: "",
         description: "",
@@ -214,7 +235,6 @@ const AdminDashboard = () => {
       });
       setIsProductModalOpen(false);
       
-      // Refresh products list
       const updatedProducts = await productsAPI.getAll();
       setProducts(updatedProducts || []);
     } catch (error: any) {
@@ -265,6 +285,37 @@ const AdminDashboard = () => {
       toast.error("Failed to update adoption status");
     }
   };
+
+  // Show loading while checking auth
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-muted/30">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-secondary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show access denied if not admin
+  if (!isAuthenticated || !isAdmin) {
+    return (
+      <div className="min-h-screen bg-muted/30">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center py-20">
+            <ShieldAlert className="h-16 w-16 text-destructive mx-auto mb-4" />
+            <h1 className="text-3xl font-bold mb-4">Access Denied</h1>
+            <p className="text-muted-foreground mb-8">
+              You don't have permission to access this page.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const stats = [
     {

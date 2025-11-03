@@ -1,20 +1,17 @@
-// src/components/LoginRegister.tsx
-// This component can be used in a modal or as a separate page
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { authAPI } from "@/lib/api";
-import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 interface LoginRegisterProps {
   onSuccess?: () => void;
 }
 
 const LoginRegister = ({ onSuccess }: LoginRegisterProps) => {
+  const { login, register } = useAuth();
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [registerData, setRegisterData] = useState({
     name: "",
@@ -23,25 +20,23 @@ const LoginRegister = ({ onSuccess }: LoginRegisterProps) => {
     confirmPassword: "",
   });
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("login");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const response = await authAPI.login({
-        email: loginData.email,
-        password: loginData.password,
-      });
-
-      toast.success(`Welcome back, ${response.name || 'User'}!`);
+      await login(loginData.email, loginData.password);
+      
+      // Reset form
+      setLoginData({ email: "", password: "" });
       
       if (onSuccess) {
         onSuccess();
       }
-    } catch (error: any) {
-      console.error('Login error:', error);
-      toast.error(error.message || 'Login failed. Please check your credentials.');
+    } catch (error) {
+      // Error is already handled in useAuth
     } finally {
       setLoading(false);
     }
@@ -51,33 +46,33 @@ const LoginRegister = ({ onSuccess }: LoginRegisterProps) => {
     e.preventDefault();
 
     if (registerData.password !== registerData.confirmPassword) {
-      toast.error("Passwords don't match!");
+      alert("Passwords don't match!");
+      return;
+    }
+
+    if (registerData.password.length < 6) {
+      alert("Password must be at least 6 characters long");
       return;
     }
 
     setLoading(true);
 
     try {
-      const response = await authAPI.register({
-        name: registerData.name,
-        email: registerData.email,
-        password: registerData.password,
-      });
-
-      toast.success('Registration successful! Please login.');
+      await register(registerData.name, registerData.email, registerData.password);
       
-      // Auto-login after registration
-      await authAPI.login({
-        email: registerData.email,
-        password: registerData.password,
+      // Reset form
+      setRegisterData({
+        name: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
       });
 
       if (onSuccess) {
         onSuccess();
       }
-    } catch (error: any) {
-      console.error('Registration error:', error);
-      toast.error(error.message || 'Registration failed. Please try again.');
+    } catch (error) {
+      // Error is already handled in useAuth
     } finally {
       setLoading(false);
     }
@@ -89,7 +84,7 @@ const LoginRegister = ({ onSuccess }: LoginRegisterProps) => {
         <CardTitle className="text-2xl text-center">Welcome to PawAdopt</CardTitle>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="login" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Login</TabsTrigger>
             <TabsTrigger value="register">Register</TabsTrigger>
@@ -179,8 +174,12 @@ const LoginRegister = ({ onSuccess }: LoginRegisterProps) => {
                   }
                   placeholder="••••••••"
                   required
+                  minLength={6}
                   disabled={loading}
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Must be at least 6 characters
+                </p>
               </div>
               <div>
                 <Label htmlFor="register-confirm">Confirm Password</Label>
@@ -196,6 +195,7 @@ const LoginRegister = ({ onSuccess }: LoginRegisterProps) => {
                   }
                   placeholder="••••••••"
                   required
+                  minLength={6}
                   disabled={loading}
                 />
               </div>

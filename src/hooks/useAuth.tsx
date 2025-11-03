@@ -1,8 +1,6 @@
-// src/hooks/useAuth.tsx
-// Custom hook for managing authentication state
-
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { authAPI } from '@/lib/api';
+import { toast } from 'sonner';
 
 interface User {
   id: string;
@@ -15,6 +13,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isAdmin: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
@@ -31,13 +30,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const token = localStorage.getItem('authToken');
     const userId = localStorage.getItem('userId');
     const userName = localStorage.getItem('userName');
+    const userEmail = localStorage.getItem('userEmail');
     const userRole = localStorage.getItem('userRole');
 
     if (token && userId && userName) {
       setUser({
         id: userId,
         name: userName,
-        email: '', // Can be fetched from API if needed
+        email: userEmail || '',
         role: userRole || 'user',
       });
     }
@@ -46,26 +46,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const response = await authAPI.login({ email, password });
-    
-    setUser({
-      id: response.userId,
-      name: response.name,
-      email: email,
-      role: response.role || 'user',
-    });
+    try {
+      const response = await authAPI.login({ email, password });
+      
+      // Store auth data
+      localStorage.setItem('authToken', response.token);
+      localStorage.setItem('userId', response.userId);
+      localStorage.setItem('userName', response.name);
+      localStorage.setItem('userEmail', email);
+      localStorage.setItem('userRole', response.role || 'user');
+      
+      setUser({
+        id: response.userId,
+        name: response.name,
+        email: email,
+        role: response.role || 'user',
+      });
+      
+      toast.success(`Welcome back, ${response.name}!`);
+    } catch (error: any) {
+      console.error('Login error:', error);
+      toast.error(error.message || 'Login failed. Please check your credentials.');
+      throw error;
+    }
   };
 
   const register = async (name: string, email: string, password: string) => {
-    await authAPI.register({ name, email, password });
-    // Auto-login after registration
-    await login(email, password);
+    try {
+      await authAPI.register({ name, email, password });
+      toast.success('Registration successful! Please login.');
+      
+      // Auto-login after registration
+      await login(email, password);
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      toast.error(error.message || 'Registration failed. Please try again.');
+      throw error;
+    }
   };
 
   const logout = () => {
     authAPI.logout();
     setUser(null);
+    toast.success('Logged out successfully');
   };
+
+  const isAdmin = user?.role === 'admin';
 
   return (
     <AuthContext.Provider
@@ -73,6 +99,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         user,
         isAuthenticated: !!user,
         isLoading,
+        isAdmin,
         login,
         register,
         logout,
@@ -83,7 +110,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// Custom hook to use auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   
@@ -93,23 +119,3 @@ export const useAuth = () => {
   
   return context;
 };
-
-// Example usage in a component:
-/*
-import { useAuth } from '@/hooks/useAuth';
-
-function MyComponent() {
-  const { user, isAuthenticated, login, logout } = useAuth();
-
-  if (isAuthenticated) {
-    return (
-      <div>
-        <p>Welcome, {user?.name}!</p>
-        <button onClick={logout}>Logout</button>
-      </div>
-    );
-  }
-
-  return <button onClick={() => login('email', 'pass')}>Login</button>;
-}
-*/
