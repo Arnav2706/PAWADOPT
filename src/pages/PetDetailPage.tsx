@@ -91,13 +91,13 @@ const PetDetailPage = () => {
     try {
       setSubmitting(true);
       await adoptionAPI.create({
-        petId: pet.id,
-        name: formData.name,
-        contact: formData.contact,
-        reason: formData.reason,
-        status: "Pending",
-      });
-      
+  petId: pet.id,
+  userName: formData.name,
+  userEmail: formData.contact,
+  message: formData.reason,
+  status: "Pending",
+});
+
       toast.success(`Your adoption request for ${pet.name} has been submitted! We'll contact you soon.`);
       setFormData({ name: "", contact: "", reason: "" });
     } catch (error: any) {

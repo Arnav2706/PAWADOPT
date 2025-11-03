@@ -86,9 +86,9 @@ export const petsAPI = {
 export const adoptionAPI = {
   create: async (adoptionData: {
     petId: string;
-    name: string;
-    contact: string;
-    reason: string;
+    userName: string;
+    userEmail: string;
+    message: string;
     status?: string;
   }) => {
     return apiCall('/api/adoption/request', {
@@ -111,6 +111,7 @@ export const adoptionAPI = {
     });
   },
 };
+
 
 // ============================
 // ORDERS API
