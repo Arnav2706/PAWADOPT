@@ -47,7 +47,7 @@ const HomePage = () => {
     {
       name: "Persian Cat",
       temperament: "Calm, Affectionate, Gentle",
-      image: "https://images.unsplash.com/photo-1573865526739-10c1d3a1e83e?w=400",
+      image: "https://images.unsplash.com/photo-1617703007558-1dff0ebfd66f?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjR8fHBlcnNpYW4lMjBjYXR8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&q=60&w=600",
     },
     {
       name: "Golden Retriever",
