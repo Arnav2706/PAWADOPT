@@ -8,14 +8,15 @@ interface ProductCardProps {
   id: string;
   name: string;
   price: number;
-  image: string;
+  image?: string; // frontend image field
+  imageUrl?: string; // backend field name
   category?: string;
 }
 
-const ProductCard = ({ id, name, price, image, category }: ProductCardProps) => {
+const ProductCard = ({ id, name, price, image, imageUrl, category }: ProductCardProps) => {
   const { addToCart: addToCartContext } = useCart();
   const { isFavorite, addToFavorites, removeFromFavorites } = useFavorites();
-  
+
   const isCurrentlyFavorite = isFavorite(id);
 
   const toggleFavorite = () => {
@@ -26,27 +27,30 @@ const ProductCard = ({ id, name, price, image, category }: ProductCardProps) => 
       addToFavorites({
         id,
         name,
-        type: 'product',
-        image,
+        type: "product",
+        image: imageUrl || image,
         price,
         category,
-        itemType: 'product'
+        itemType: "product",
       });
       toast.success(`${name} added to favorites`);
     }
   };
 
   const addToCart = () => {
-    addToCartContext({ id, name, price, image, category });
+    addToCartContext({ id, name, price, image: imageUrl || image, category });
     toast.success(`${name} added to cart!`);
   };
 
+  const imgSrc = imageUrl || image || "/placeholder.jpg"; // ✅ Fallback to placeholder
+
   return (
     <Card className="group overflow-hidden transition-all hover:shadow-hover animate-fade-in">
-      <div className="relative overflow-hidden aspect-square">
+      <div className="relative overflow-hidden aspect-square bg-gray-100">
         <img
-          src={image}
+          src={imgSrc}
           alt={name}
+          onError={(e) => (e.currentTarget.src = "/placeholder.jpg")}
           className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-300"
         />
         <button
@@ -55,7 +59,9 @@ const ProductCard = ({ id, name, price, image, category }: ProductCardProps) => 
         >
           <Heart
             className={`h-5 w-5 ${
-              isCurrentlyFavorite ? "fill-secondary text-secondary" : "text-muted-foreground"
+              isCurrentlyFavorite
+                ? "fill-secondary text-secondary"
+                : "text-muted-foreground"
             }`}
           />
         </button>
