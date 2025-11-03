@@ -148,26 +148,44 @@ const AdminDashboard = () => {
   }, [isAuthenticated, isAdmin]);
 
   const fetchAllData = async () => {
-    setLoading(true);
-    try {
-      const [petsData, productsData, ordersData, adoptionsData] = await Promise.all([
-        petsAPI.getAll().catch(() => []),
-        productsAPI.getAll().catch(() => []),
-        ordersAPI.getAll().catch(() => []),
-        adoptionAPI.getAll().catch(() => []),
-      ]);
+  setLoading(true);
+  try {
+    const [petsData, productsData, ordersData, adoptionsRaw] = await Promise.all([
+      petsAPI.getAll().catch(() => []),
+      productsAPI.getAll().catch(() => []),
+      ordersAPI.getAll().catch(() => []),
+      adoptionAPI.getAll().catch(() => []),
+    ]);
 
-      setPets(petsData || []);
-      setProducts(productsData || []);
-      setOrders(ordersData || []);
-      setAdoptions(adoptionsData || []);
-    } catch (error) {
-      console.error('Error fetching admin data:', error);
-      toast.error('Failed to load dashboard data');
-    } finally {
-      setLoading(false);
-    }
-  };
+    // 🧩 Map backend AdoptionRequest -> frontend Adoption
+    const adoptionsData = (adoptionsRaw || []).map((a: any) => ({
+      id: a.id?.toString(),
+      petId: a.petId?.toString(),
+      petName: a.petName || `Pet #${a.petId}`,
+      name: a.userName,              // ✅ Maps from backend field
+      contact: a.userEmail,          // ✅ Maps from backend field
+      reason: a.message,             // ✅ Maps from backend field
+      status:
+        a.status?.toUpperCase() === "PENDING"
+          ? "Pending"
+          : a.status?.toUpperCase() === "APPROVED"
+          ? "Approved"
+          : "Rejected",
+    }));
+
+    // ✅ Update state with all fetched data
+    setPets(petsData || []);
+    setProducts(productsData || []);
+    setOrders(ordersData || []);
+    setAdoptions(adoptionsData || []);
+  } catch (error) {
+    console.error("Error fetching admin data:", error);
+    toast.error("Failed to load dashboard data");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // Pet form handlers
   const handleAddPet = async (e: React.FormEvent) => {
