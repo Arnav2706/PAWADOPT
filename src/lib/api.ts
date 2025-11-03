@@ -152,7 +152,7 @@ export const productsAPI = {
 };
 
 // ============================
-// AUTH API
+// AUTH API - UPDATED TO WORK WITH YOUR BACKEND
 // ============================
 export const authAPI = {
   register: async (userData: { 
@@ -161,27 +161,77 @@ export const authAPI = {
     password: string; 
     role?: string 
   }) => {
-    return apiCall('/api/auth/register', {
+    const response = await apiCall('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
+    
+    // Return user data - your backend returns the User object
+    return {
+      userId: response.id,
+      name: response.name,
+      email: response.email,
+      role: response.role || 'user'
+    };
   },
 
   login: async (credentials: { email: string; password: string }) => {
-    const response = await apiCall('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
+    // Build URL with query parameters to match your backend
+    const params = new URLSearchParams({
+      email: credentials.email,
+      password: credentials.password
     });
     
-    // Store auth data if login successful
-    if (response.token) {
-      localStorage.setItem('authToken', response.token);
-      localStorage.setItem('userId', response.userId);
-      localStorage.setItem('userRole', response.role);
-      localStorage.setItem('userName', response.name);
-    }
+    const url = `${API_BASE_URL}/api/auth/login?${params.toString()}`;
     
-    return response;
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Login failed');
+      }
+
+      const responseText = await response.text();
+      
+      // Your backend returns: "Login successful for user: [name]"
+      if (responseText.startsWith('Login successful')) {
+        // Extract username from response
+        const userName = responseText.replace('Login successful for user: ', '');
+        
+        // Fetch full user data
+        const userResponse = await apiCall(`/api/auth/user/${credentials.email}`, {
+          method: 'GET'
+        });
+        
+        // Create token (simple for now)
+        const token = `Bearer_${userResponse.id}_${Date.now()}`;
+        
+        // Store auth data
+        localStorage.setItem('authToken', token);
+        localStorage.setItem('userId', userResponse.id);
+        localStorage.setItem('userRole', userResponse.role || 'user');
+        localStorage.setItem('userName', userResponse.name);
+        localStorage.setItem('userEmail', userResponse.email);
+        
+        return {
+          token,
+          userId: userResponse.id,
+          name: userResponse.name,
+          role: userResponse.role || 'user'
+        };
+      } else {
+        throw new Error('Invalid response from server');
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      throw new Error(error.message || 'Login failed. Please check your credentials.');
+    }
   },
 
   logout: () => {
@@ -189,6 +239,7 @@ export const authAPI = {
     localStorage.removeItem('userId');
     localStorage.removeItem('userRole');
     localStorage.removeItem('userName');
+    localStorage.removeItem('userEmail');
   },
 };
 
